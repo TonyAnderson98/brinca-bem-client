@@ -39,6 +39,9 @@ export default async function Home() {
           ))}
         </div>
       )}
+
+      <h1 className="font-sc text-3xl">Bola Jabulani Copa</h1>
+      <p className="font-sans">Bola Jabulani Copa</p>
     </main>
   );
 }
