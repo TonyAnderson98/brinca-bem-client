@@ -1,4 +1,8 @@
+'use client';
+
 import Image from "next/image";
+import { useAuth } from "@/contexts/AuthContext";
+import Link from "next/link";
 
 const categories = [
     { name: "Bebês", icon: "/assets/icons/bebe.svg" },
@@ -54,6 +58,10 @@ const decorations = [
 ];
 
 export function Header() {
+    const { user, isAuthenticated, signOut } = useAuth();
+
+    const firstName = user?.name?.split(' ')[0] || 'Usuário';
+
     return (
         <div className="relative bg-[#D5EFFB] p-2 sm:p-6 lg:p-8 h-full w-full flex flex-col gap-6 items-center justify-center overflow-hidden">
 
@@ -71,7 +79,6 @@ export function Header() {
             ))}
 
             <div className="relative z-10 w-full max-w-300 flex justify-center items-center">
-
                 <div className="relative">
                     <input
                         className="font-sc p-2 pl-12 w-64 md:w-96 lg:w-120 rounded-xl border border-gray-200 bg-white"
@@ -93,19 +100,33 @@ export function Header() {
                 </div>
 
 
-                <div className="absolute right-5 top-1/2 transform -translate-y-1/2 flex md:flex-row flex-col items-center gap-2">
-                    <div className="relative w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12">
-                        <Image
-                            src="/assets/icons/user.svg"
-                            alt="Login"
-                            fill
-                            className="object-contain"
-                        />
-                    </div>
-                    <span className="hidden sm:block font-sc text-sm md:text-xl text-slate-700">
-                        Entre
-                    </span>
-                </div>
+                {isAuthenticated ? (
+                    <div className="absolute right-5 top-1/2 transform -translate-y-1/2 flex md:flex-row flex-col items-center gap-2">
+                        <div className="relative w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12">
+                            <Image
+                                src="/assets/icons/user.svg"
+                                alt="Login"
+                                fill
+                                className="object-contain"
+                            />
+                        </div>
+                        <span className="hidden sm:block font-sc text-sm md:text-xl text-slate-700">
+                            {firstName}
+                        </span>
+                        <button className="text-sx text-red-500 hover:text-red-700 font-sans font-semibold hover:underline cursor-pointer" onClick={signOut}>Sair</button>
+                    </div>) : (<div className="absolute right-5 top-1/2 transform -translate-y-1/2 flex md:flex-row flex-col items-center gap-2">
+                        <div className="relative w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12">
+                            <Image
+                                src="/assets/icons/user.svg"
+                                alt="Login"
+                                fill
+                                className="object-contain"
+                            />
+                        </div>
+                        <span className="hidden sm:block font-sc text-sm md:text-xl text-slate-700">
+                            Entre
+                        </span>
+                    </div>)}
 
             </div>
 

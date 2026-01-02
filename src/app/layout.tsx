@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Overlock, Overlock_SC } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const overlock = Overlock({
   subsets: ["latin"],
@@ -31,8 +32,10 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${overlock.variable} ${overlockSC.variable} antialiased bg-gray-50 text-gray-900`}>
-        <Header />
-        {children}
+        <AuthProvider>
+          <Header />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
