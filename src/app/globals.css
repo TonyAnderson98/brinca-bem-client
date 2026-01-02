@@ -1,1 +1,21 @@
 @import "tailwindcss";
+
+:root {
+    /* O Tailwind v4 detecta isso automaticamente como font-sans */
+    --font-sans: var(--font-overlock);
+
+    /* Definimos uma variável customizada para o SC */
+    --font-sc: var(--font-overlock-sc);
+}
+
+/* Força o body a usar a fonte imediatamente */
+body {
+    font-family: var(--font-overlock), sans-serif;
+}
+
+/* Criação manual da classe .font-sc caso o mapeamento falhe */
+.font-sc {
+    font-family: var(--font-overlock-sc), sans-serif;
+}
+
+
