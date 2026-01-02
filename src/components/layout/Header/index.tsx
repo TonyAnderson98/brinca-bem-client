@@ -70,7 +70,7 @@ export function Header() {
                 </div>
             ))}
 
-            <div className="relative z-10 w-full max-w-[1400px] flex justify-center items-center">
+            <div className="relative z-10 w-full max-w-300 flex justify-center items-center">
 
                 <div className="relative">
                     <input
