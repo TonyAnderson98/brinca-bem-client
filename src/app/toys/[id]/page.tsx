@@ -40,15 +40,26 @@ export default async function ToyDetailsPage({ params }: ToyPageProps) {
             <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
                 <div className="grid grid-cols-1 md:grid-cols-2">
 
-                    {/* LADO ESQUERDO: IMAGEM */}
-                    <div className="relative h-96 md:h-full min-h-100 bg-gray-50">
-                        <Image
-                            src={toy.image_url}
-                            alt={toy.title}
-                            fill
-                            className="object-contain p-4"
-                            priority
-                        />
+                    {/* LADO ESQUERDO: IMAGEM E GALERIA */}
+                    <div className="bg-gray-50 flex flex-col">
+                        <div className="relative h-96 w-full grow">
+                            <Image
+                                src={toy.image_url}
+                                alt={toy.title}
+                                fill
+                                className="object-contain p-4"
+                                priority
+                            />
+                        </div>
+                        {toy.gallery && toy.gallery.length > 0 && (
+                            <div className="flex gap-2 p-4 overflow-x-auto border-t border-gray-200">
+                                {toy.gallery.map((img, i) => (
+                                    <div key={i} className="relative w-20 h-20 flex-shrink-0 border rounded bg-white">
+                                        <Image src={img} alt="" fill className="object-cover rounded" />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* LADO DIREITO: INFORMAÇÕES */}

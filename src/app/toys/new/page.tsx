@@ -11,12 +11,14 @@ const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_PRESET_NAME;
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function NewToyPage() {
-    const { user, isAuthenticated } = useAuth();
+    const { user } = useAuth();
     const router = useRouter();
 
     const [loading, setLoading] = useState(false);
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+    // Gerenciamento de múltiplas imagens
+    const [imageFiles, setImageFiles] = useState<File[]>([]);
+    const [previews, setPreviews] = useState<string[]>([]);
 
     const [formData, setFormData] = useState({
         title: "",
@@ -25,45 +27,72 @@ export default function NewToyPage() {
         condition: "used" as "new" | "used",
     });
 
-
     function handleChange(e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
     }
 
+    // Adiciona novas imagens à seleção existente
     function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
-        const file = e.target.files?.[0];
-        if (file) {
-            setImageFile(file);
-            setPreviewUrl(URL.createObjectURL(file));
+        if (e.target.files) {
+            const newFiles = Array.from(e.target.files);
+
+            // Cria URLs de preview para as novas imagens
+            const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+
+            setImageFiles(prev => [...prev, ...newFiles]);
+            setPreviews(prev => [...prev, ...newPreviews]);
         }
     }
 
-    async function uploadImageToCloudinary(file: File): Promise<string> {
-        const data = new FormData();
-        data.append("file", file);
-        data.append("upload_preset", UPLOAD_PRESET!);
+    // Remove uma imagem específica da lista
+    function removeImage(indexToRemove: number) {
+        setImageFiles(prev => prev.filter((_, index) => index !== indexToRemove));
 
-        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-            method: "POST",
-            body: data,
+        // Revoga a URL do objeto para evitar vazamento de memória e remove do state
+        setPreviews(prev => {
+            const urlToRemove = prev[indexToRemove];
+            URL.revokeObjectURL(urlToRemove);
+            return prev.filter((_, index) => index !== indexToRemove);
+        });
+    }
+
+    // Upload de múltiplas imagens em paralelo
+    async function uploadImagesToCloudinary(files: File[]): Promise<string[]> {
+        const uploadPromises = files.map(async (file) => {
+            const data = new FormData();
+            data.append("file", file);
+            data.append("upload_preset", UPLOAD_PRESET!);
+
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+                method: "POST",
+                body: data,
+            });
+
+            if (!res.ok) throw new Error(`Erro ao fazer upload de ${file.name}`);
+
+            const json = await res.json();
+            return json.secure_url;
         });
 
-        if (!res.ok) throw new Error("Erro ao fazer upload da imagem");
-
-        const json = await res.json();
-        return json.secure_url;
+        return Promise.all(uploadPromises);
     }
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
-        if (!imageFile) return alert("Selecione uma imagem!");
+
+        if (imageFiles.length === 0) {
+            return alert("Selecione pelo menos uma imagem (a primeira será a capa)!");
+        }
 
         try {
             setLoading(true);
-            const imageUrl = await uploadImageToCloudinary(imageFile);
+
+            // 1. Upload das imagens para o Cloudinary
+            const uploadedUrls = await uploadImagesToCloudinary(imageFiles);
             const token = localStorage.getItem("@BrincaBem:token");
 
+            // 2. Envio para o Backend (agora enviando 'images' array)
             const res = await fetch(`${API_URL}/toys`, {
                 method: "POST",
                 headers: {
@@ -72,7 +101,7 @@ export default function NewToyPage() {
                 },
                 body: JSON.stringify({
                     ...formData,
-                    image_url: imageUrl,
+                    images: uploadedUrls,
                 }),
             });
 
@@ -98,32 +127,63 @@ export default function NewToyPage() {
 
             <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-md border border-gray-100 space-y-6">
 
-                {/* Upload Area */}
+                {/* Área de Upload Múltiplo */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Foto do Brinquedo</label>
-                    <div className="flex items-center justify-center w-full">
-                        <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                            {previewUrl ? (
-                                <div className="relative w-full h-full">
-                                    <Image src={previewUrl} alt="Preview" fill className="object-contain p-2" />
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <p className="text-sm text-gray-500"><span className="font-semibold">Clique para enviar a foto</span></p>
-                                </div>
-                            )}
-                            <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                    <label className="block text-sm font-medium text-gray-700 mb-3">Fotos do Brinquedo</label>
+
+                    <div className="grid grid-cols-3 gap-4">
+                        {/* Previews das Imagens Selecionadas */}
+                        {previews.map((src, index) => (
+                            <div key={index} className="relative aspect-square border rounded-lg overflow-hidden group bg-gray-50">
+                                <Image
+                                    src={src}
+                                    alt={`Preview ${index}`}
+                                    fill
+                                    className="object-cover"
+                                />
+
+                                {/* Botão de Remover */}
+                                <button
+                                    type="button"
+                                    onClick={() => removeImage(index)}
+                                    className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 w-6 h-6 flex items-center justify-center text-xs shadow-md transition-all opacity-0 group-hover:opacity-100"
+                                    title="Remover foto"
+                                >
+                                    ✕
+                                </button>
+
+                                {/* Badge de Capa */}
+                                {index === 0 && (
+                                    <div className="absolute bottom-0 left-0 right-0 bg-blue-600/80 text-white text-[10px] font-bold text-center py-1 backdrop-blur-sm">
+                                        CAPA
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+
+                        {/* Botão de Adicionar (Input File) */}
+                        <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-blue-400 transition-colors">
+                            <span className="text-3xl text-gray-400 mb-1">+</span>
+                            <span className="text-xs text-gray-500 font-medium">Adicionar</span>
+                            <input
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                multiple
+                                onChange={handleFileChange}
+                            />
                         </label>
                     </div>
+                    <p className="text-xs text-gray-500 mt-2">A primeira imagem selecionada será a capa do brinquedo.</p>
                 </div>
 
-                {/* Title */}
+                {/* Título */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Título</label>
                     <input name="title" required value={formData.title} onChange={handleChange} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Ex: Bola de Futebol" />
                 </div>
 
-                {/* Category & Condition */}
+                {/* Categoria & Condição */}
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Categoria</label>
@@ -138,14 +198,14 @@ export default function NewToyPage() {
                     </div>
                 </div>
 
-                {/* Description */}
+                {/* Descrição */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Descrição</label>
-                    <textarea name="description" required rows={4} value={formData.description} onChange={handleChange} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Detalhes..." />
+                    <textarea name="description" required rows={4} value={formData.description} onChange={handleChange} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Conte mais detalhes sobre o brinquedo..." />
                 </div>
 
-                <button type="submit" disabled={loading} className="w-full py-3 px-4 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 disabled:opacity-50">
-                    {loading ? "Enviando..." : "Cadastrar Brinquedo"}
+                <button type="submit" disabled={loading} className="w-full py-3 px-4 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-wait transition-colors">
+                    {loading ? "Processando imagens..." : "Cadastrar Brinquedo"}
                 </button>
             </form>
         </main>

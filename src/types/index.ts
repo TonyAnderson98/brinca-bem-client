@@ -13,6 +13,7 @@ export interface Toy {
     condition: 'new' | 'used';
     status: 'pending' | 'available' | 'reserved' | 'donated';
     image_url: string;
+    gallery?: string[];
     user_id: number;
     created_at: string;
 }
