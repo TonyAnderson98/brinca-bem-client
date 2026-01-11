@@ -44,6 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Login
     async function signIn({ email, password }: any) {
         try {
+            setLoading(true);
+
             // Chama a API
             const response = await fetch(`${API_URL}/auth/login`, {
                 method: "POST",
@@ -65,6 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             router.push("/");
         } catch (error) {
             throw error;
+        } finally {
+            setLoading(false);
         }
     }
 
