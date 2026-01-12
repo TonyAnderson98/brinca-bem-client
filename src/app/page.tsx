@@ -2,6 +2,7 @@
 import { Toy } from "@/types";
 import { API_URL } from "@/services/api";
 import ToyCard from "@/components/ui/ToyCard";
+import Link from "next/link";
 
 async function fetchToys(): Promise<Toy[]> {
 	try {
@@ -25,7 +26,9 @@ export default async function Home() {
 		<main className="container mx-auto p-4">
 			<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
 				{toys.map((toy) => (
-					<ToyCard key={toy.id} toy={toy} />
+					<Link href={`/toys/${toy.id}`} key={toy.id}>
+						<ToyCard toy={toy} />
+					</Link>
 				))}
 			</div>
 
