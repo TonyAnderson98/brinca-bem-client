@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         hostname: 'i.imgur.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      }
     ],
   },
 };
